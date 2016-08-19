@@ -117,7 +117,7 @@ int myEmboss(void *inData,
 4. 声明一个*Pixel8888-*格式的像素来表示目标图像的背景色（示例中用的是黑色）。
 5. 声明一个*vImage_Err*变量来存储卷积函数的返回值。
 
-然后，将这些声明的变量值传入*vImageConvolve_ARGB8888*函数中，由vImage来处理后续的计算，并把结果存储到*dest*变量中。*vImageConvolve_ARGB8888*函数是vImage中仅有的几个卷积函数之一。通常，vImage会为每种图像格式提供4种函数变体，ARGB8888前缀表示该函数处理的是交叉型图像（full-color），每个像素由四个8字节的整数构成一组，代表alpha（A），red（R），green（G）和blue（B）四个通道。想了解vImage支持的图像格式的更多细节，请看[www.baidu.com](http://example.com/ "http://example.com/")
+然后，将这些声明的变量值传入*vImageConvolve_ARGB8888*函数中，由vImage来处理后续的计算，并把结果存储到*dest*变量中。*vImageConvolve_ARGB8888*函数是vImage中仅有的几个卷积函数之一。通常，vImage会为每种图像格式提供4种函数变体，ARGB8888前缀表示该函数处理的是交叉型图像（full-color），每个像素由四个8字节的整数构成一组，代表alpha（A），red（R），green（G）和blue（B）四个通道。想了解vImage支持的图像格式的更多细节，请看[https://github.com/YunFei2015/iOS-Image-Processing/blob/master/vImage%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.mdown](http://example.com/ "http://example.com/")
 
 示例*myEmboss*中还使用了*vImage_Flags*参数。该参数由1个或多个flags（用或逻辑运算符 | 连接）组成。*kvImageBackgroundColorFill*表示vImage要使用预先提供的背景色。
 
