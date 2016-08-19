@@ -1,0 +1,134 @@
+# vImage学习笔记（一）——概述
+## 一、关于图像格式	Image Formats
+图像格式（Image Formats）规定了像素数据如何在内存中存储。图像文件格式（比如JPG、PNG、GIF等）用来在程序中转换图像数据，并将数据存储在硬盘上。诸如Image I/O等框架可以从硬盘加载各种格式的图像文件，并且在内存中使用。在内存中，图像是通过二维数组来存储像素数据的，图像中的每个像素都对应数组中的一个元素。
+
+图像格式（Image Formats）包含两种类型：二维平面型（planar）和交叉型（interleaved）。二维平面型图像把不同通道的数据存储在不同的缓冲区内，一个典型的平面型图像通常包括red、green、blue和alpha四个通道。交叉型图像把不同通道的数据轮换着存储：ARGBARGBARGB……
+
+图像数据可以是整型（integer）和浮点型（float）。在vImage中，通过一个8位（bit）的无符号整型数值表示色饱和度等级。数值范围0~255，255表示最大色饱和度，0表示无色饱和度。浮点型数值通常从0.0~1.0表示色饱和度。
+
+以下是核心操作使用到的图像格式：
+
+
+- **Planar8**　　单通道（颜色或alpha）图像。每个像素都是一个8bit的无符号整数，数据类型是Pixel_8
+- **PlanarF**　　单通道（颜色）图像。每个像素都是一个32bit的浮点数，数据类型是Pixel_F
+- **ARGB8888**　　图像包含四个交叉通道，alpha、red、green、blue，顺序固定。每个像素都是一个32位的数组（包含四个8位无符号整数）。数据类型是Pixel_8888
+- **ARGBFFFF**　　图像包含四个交叉通道，alpha、red、green、blue，顺序固定。每个像素都是一个包含四个浮点数的数组。数据类型是Pixel_FFFF
+- **RGBA8888**　　图像包含四个交叉通道，red、green、blue、alpha，顺序固定。每个像素都是一个32位的数组（包含四个8位无符号整数）。数据类型是Pixel_8888
+- **RGBAFFFF**　　图像包含四个交叉通道，red、green、blue、alpha，顺序固定。每个像素都是一个包含四个浮点数的数组。数据类型是Pixel_FFFF
+
+
+可以将其他格式的图像转换为vImage的图像格式。例如，可以通过vImageConvert_16SToF函数将一个16位像素的图像转换为vImage支持的32位像素。下面这些函数可以帮助你在vImage图像格式之间进行转换，也可以把vImage不支持的图像格式转换为vImage格式。
+
+- ***vImageConvert_16SToF***   　　　将一个16位符号整型planar图像格式（或  vImage_Buffer.width=4的interleaved-multiply）缓冲区（ vImage_Buffer ）转换为浮点型数值缓冲区
+- ***vImageConvert_16UToF***    　　将一个16位无符号整型planar图像格式（或  vImage_Buffer.width=4的interleaved-multiply）缓冲区（ vImage_Buffer ）转换为浮点型数值缓冲区
+- ***ImageConvert_FTo16S***    　　将一个浮点型planar图像格式（或  vImage_Buffer.width=4的interleaved-multiply）缓冲区（ vImage_Buffer ）转换为16位符号整型缓冲区
+- ***vImageConvert_FTo16U***    　　将一个浮点型planar图像格式（或  vImage_Buffer.width=4的interleaved-multiply）缓冲区（ vImage_Buffer ）转换为16位无符号整型缓冲区
+- ***vImageConvert_16UtoPlanar8***    　　将一个16位无符号整型planar图像格式（或  vImage_Buffer.width=4的interleaved-multiply）缓冲区（ vImage_Buffer ）转换为8位整型缓冲区
+- ***vImageConvert_Planar8to16U***    　　将一个8位整型planar图像格式（或  vImage_Buffer.width=4的interleaved-multiply）缓冲区（ vImage_Buffer ）转换为16位无符号整型缓冲区
+- ***vImageConvert_ARGB1555toPlanar8***    　　将16位/像素图像（alpha通道1bit，red/green/blue通道5bit）转换为Planar8格式。
+- ***vImageConvert_ARGB1555toARGB8888***    　　将16位/像素图像（alpha通道1bit，red/green/blue通道5bit）转换为ARGB8888格式。
+- ***vImageConvert_Planar8toARGB1555***    　　将Planar8格式图像转换为包含1bit alpha，5bit red，5bit green，5bit blue的16位/像素图像。
+- ***vImageConvert_ARGB8888toARGB1555***    　　将ARGB8888格式图像转换为包含1bit alpha，5bit red，5bit green，5bit blue的16位/像素图像。
+- ***vImageConvert_RGB565toPlanar8***    　　将5bit red，6bit green，5bit blue的16位/像素图像转换为Planar8
+- ***vImageConvert_RGB565toARGB8888***    　　将5bit red，6bit green，5bit blue的16位/像素图像转换为ARGB8888
+- ***vImageConvert_Planar8toRGB565***    　　将Planar8图像转换为5-6-6图像
+- ***vImageConvert_ARGB8888toRGB565***    　　将ARGB8888图像转换为5-6-5图像
+- ***vImageConvert_Planar16FtoPlanarF***    　　将16位浮点型planar图像转换为32位浮点型
+
+
+## 二、vImage练习
+### Loading Image Data
+要将vImage集成到你的应用中，首先要把raw图像数据加载到内存。可以使用Image I/O框架把任何主流的图像文件（JPG、PNG、GIF等）加载到C类型缓冲池中（void *arrays）。
+
+以下是从本地文件提取raw图像数据的例子：
+	
+```objc
+NSURL* url = [NSURL fileURLWithPath:filename];
+//Create the image source with the options left null for now
+//Keep in mind since we created it, we're responsible for getting rid of it
+CGImageSourceRef image_source = CGImageSourceCreateWithURL( (CFURLRef)url, NULL);
+if(image_source == NULL)
+{
+    //Something went wrong
+    fprintf(stderr, "VImage error: Couldn't create image source from URL\n");
+    return false;
+}
+//Now that we got the source, let's create an image from the first image in the CGImageSource
+CGImageRef image = CGImageSourceCreateImageAtIndex(image_source, 0, NULL);
+ 
+//We created our image, and that's all we needed the source for, so let's release it
+CFRelease(image_source);
+ 
+if(image == NULL)
+{
+    //something went wrong
+    fprintf(stderr, "VImage error: Couldn't create image source from URL\n");
+    return false;
+}
+```
+把图像加载到内存之后，就可以通过vImage函数进行各种处理了。请密切注意函数下划线之后的字符，那代表了像素数据的格式。vImage函数既可以在源缓冲区中直接处理，也可以在提供的目标缓冲区中处理。
+
+由于vImage只负责处理图像，你还需要想办法把图像显示出来。根据你的应用开发环境（Carbon or Cocoa），你需要找到一个方法（例如Quartz）去显示合成后的像素数据，或将图像数据存储到磁盘（Image I/O）。
+
+#### 使用二维图像格式
+大多数vImage函数是从四种图像格式开始的。二维图像每次编码一个通道（先存储所有的红色通道数据，然后是绿色，蓝色，alpha），而交叉图像在内存是混合存储所有通道的。
+
+~~~
+注意：有时候你可能并不需要处理所有的通道。比如，你知道你要处理的图像中是不需要alpha通道的，或可能你的图像是灰度图，因此你只需要一个通道。这种情况下，使用二维图像格式可以让你把需要的通道隔离出来。
+~~~
+
+#### 拼贴（Tiles）技术
+在图像应用中，通常要使用Tiles将一个图像分割成几个小图。之所以称为tiling技术，是因为这看起来很像是把多个地板瓷砖拼接成一大块儿的过程，图像中多个小的单位拼贴在一起，形成一个大的图像。这个技术的优势在于，把数据分散成N个小的单位后，可以分散填充到高速缓存中，这使CPU的处理速度加快了许多。
+
+通常来说，当被处理的数据（包括输入数据和输出数据）放在处理器的数据缓存中时，vImage具有更好的性能。访问处理器缓存中的数据比访问内存数据要快很多。然而CPU缓存是很快，但是它在空间上是有限制的。不同的CPU缓存大小不一样，但总的来说，在Intel处理器中保存少于2MB的tile图像，还有在PowerPC处理器中保存少于512KB的tile还是很有优势的。
+
+* 以下是Tiles技术的一些技巧：
+	
+	* 有些CPU缓存一次只能保存很少量的数据（通常是512KB或更少）
+		* 128KB - 512KB的tile数据吞吐量最优
+	* 很多vImage函数内部可以使用tile技术（还有多线程）。如果你想自己控制tiling，可以在调用函数时在flags参数中添加kvImageDoNotTile标记，这样可以避免函数在内部使用tiling或多线程技术。
+	* 对于平方形tile，128KB-256KB的tile大小具有最好的吞吐率。
+	* 不同函数的最优tile大小也是不同的。具有少量字节计算的函数（大多数是转换函数）在file size 小于16KB时是最快的，典型的vImage函数在256KB tile size下是最快的。
+
+#### 数据缓冲排列
+当分配图像的浮点型数据时，保持4个字节的排列是很重要的。这说明你分配的字节数应该是4的整数倍。
+
+以下是数据排列和缓冲区大小的一些技巧：
+
+* 尽管vImage默认可以有更少的数据排列，但为了性能最优化，所有数据都应该是16字节排列，且rowbytes应该是16的整数倍。
+* 浮点型数据必须至少是4字节，否则某些函数可能会报错。
+* 函数的rowBytes参数不能传入2的幂次方。
+
+#### 缓冲区（buffer）重用机制
+很多函数在执行任务时，会使用临时缓冲区来存储中间值。在一开始只需创建一次buffer，就可以在多个函数中使用，这样可以节省时间。
+
+如果你没有提供buffer，这些函数会自行创建buffer（当然，使用完后释放）。
+
+如果你只需要调用几次该函数，并且不在意短暂的阻塞，那么让函数自行创建buffer是个明智的选择。
+
+每个使用到临时buffer的函数都有一个src和desc参数（数据类型都是vImage_Buffer）。函数只使用了这些参数的height和width域；忽略data和rowBytes域。
+
+可能的话，应用也应该尝试重用vImage_Buffer数据的data域指向的图像缓冲区。这样可以节省时间，否则还要重新分配并且把原来的buffer抹平。
+
+在实际应用中，要尽可能的避免使用堆和其他可能引起阻塞的操作（比如内存分配）。
+
+#### 适当的使用线程
+vImage是线程安全的并且可重入。如果你分割了你的图像，你可以使用多线程处理不同的tiles。如果你使用不同的处理器处理不同的tiles，你应选择那些水平方向上不相邻的tiles。否则tile的边缘可能会共享到cache，这有可能导致两个处理器之间耗时的干扰。
+
+在vImage函数工作时，vImage的输出buffer状态是未知的。有可能buffer中的像素数据既不是起始数据也不是结束数据，而是计算过程中的一个中间值。
+
+在OS X 10.4之后，一些vImage函数在内部使用了多线程技术。他们自己做了参数检查和多线程来提高性能。vImage维持了它延迟分配线程缓冲池的风格去做这件事。这些线程一旦被创建就不会被销毁，他们会被重用。被调用的线程要等待上一个线程完成自己的任务，在这之前会被阻塞。使用内部实现了多线程技术的函数是安全的。
+
+线程安全的函数通过锁来保持数据一致性。如果你不希望函数使用锁，你需要设置kvImageDoNotTile标志位来阻止vImage使用多线程和tiling技术。如果你设置了该标志位，你的应用需要自行处理数据tiling和多线程。
+
+#### 把2D核分为1D核
+如果你使用卷积方法对图像添加滤镜，你可以通过将2D核分裂为两个1D核来提高性能，这样可以使用两次卷积（一个维度可以使用一次）。
+
+当然，你可以将2D核传给vImageConvolve函数。vImage使用2D核来完成9层8加的操作来计算每个像素结果。为了更好的性能，对每个1D卷积滤镜调用一次vImageConvolve函数。核分裂后，vImage通过每个卷积对每个像素执行3层2加的操作，加起来是6层4加。我们注意到将核分裂成两个后，算法复杂度在乘法上节省了1/3，在加法上节省了1/2。对于M×N的内核，处理消耗从M*N骤减到M+N。一个5×5的核分裂后的处理速度加快2.5倍，一个11×11的核分裂后可能加快超过5倍。
+
+注意这个技术在常规情况下是比较慢的。一般在图像特别大，或图像无法存入内存时使用这个技术。</sup>
+
+有几种情况下，分裂特别大的滤镜是执行卷积操作的唯一方案。一个总计超过2<sup>24</sup>的滤镜，vImage使用8位的卷积操作下，运行起来会有内存溢出的风险。这个时候，可以采用分裂滤镜来避免溢出，你甚至可以在放大滤镜之前，通过分裂技术向滤镜里添加更多的固定精度的点。这种技术的中间值精度损失程度未知。
+
+
+
